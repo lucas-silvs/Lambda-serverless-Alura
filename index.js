@@ -22,10 +22,11 @@ exports.handler = async (event) => {
     // TODO implement
     console.log("Executando Lambda na aws utilizando s3")
     console.log("id informado: "+event.pacienteId )
+    console.log("deploy via terminal, utilizando o AWS CLI")
     
     let pacienteEncontrado
     if(event.pacienteId){
-        pacienteEncontrado = buscarPaciente(pacienteId)
+        pacienteEncontrado = buscarPaciente(event.pacienteId)
         pacienteEncontrado.idade = calcularIdade(pacienteEncontrado)
         
         return {
@@ -34,7 +35,7 @@ exports.handler = async (event) => {
     };
     }
     
-    const todosPacientes = pacientes.map(paciente => ({...paciente,idade: calcularIdade(p)}))
+    const todosPacientes = pacientes.map(paciente => ({...paciente,idade: calcularIdade(paciente)}))
     
     return {
         statusCode: 200,

@@ -1,0 +1,17 @@
+service: cadastro-pacientes
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+
+stage: local
+region: us-east-1
+
+functions:
+  hello:
+    handler: handler.hello
+
+  listarPacientes:
+    handler: handler.listarPacientes
