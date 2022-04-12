@@ -1,0 +1,23 @@
+{
+  "name": "lambda-serverless-alura",
+  "version": "1.0.0",
+  "description": "repositório dos projetos desenvolvidos durante o curso da Alura - Aplicações Serverless: construindo uma API REST",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/lucas-silvs/Lambda-serverless-Alura.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/lucas-silvs/Lambda-serverless-Alura/issues"
+  },
+  "homepage": "https://github.com/lucas-silvs/Lambda-serverless-Alura#readme",
+  "dependencies": {
+    "moment": "^2.29.2"
+  }
+}
