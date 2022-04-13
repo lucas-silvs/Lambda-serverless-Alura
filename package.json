@@ -19,5 +19,8 @@
   "homepage": "https://github.com/lucas-silvs/Lambda-serverless-Alura#readme",
   "dependencies": {
     "moment": "^2.29.2"
+  },
+  "devDependencies": {
+    "serverless-offline": "^8.7.0"
   }
 }

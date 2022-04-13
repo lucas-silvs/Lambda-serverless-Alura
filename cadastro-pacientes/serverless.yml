@@ -2,11 +2,14 @@ service: cadastro-pacientes
 
 frameworkVersion: '3'
 
+plugins:
+  - serverless-offline
+
 provider:
   name: aws
   runtime: nodejs12.x
 
-stage: local
+stage: dev
 region: us-east-1
 
 functions:
@@ -15,3 +18,24 @@ functions:
 
   listarPacientes:
     handler: handler.listarPacientes
+    
+    events:
+      - http:  
+          path: pacientes
+          method: get
+
+  buscarPaciente:
+    handler: handler.buscarPaciente
+    
+    events:
+      - http:  
+          path: pacientes/{pacienteId}
+          method: get
+          request:
+            parameters:
+              paths:
+                pacienteId: false
+
+
+
+       
