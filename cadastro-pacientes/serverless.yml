@@ -5,13 +5,30 @@ frameworkVersion: '3'
 plugins:
   - serverless-offline
 
+#informar o provider (aws , google cloud, azure, etc.)
 provider:
   name: aws
   runtime: nodejs12.x
 
+#aqui é informado as permissões que os serão utilizadas pelas functions, onde é informada o tipo do produto é a operação
+#o Resoruce é o arn do recurso que será utilizado as permissões especificads
+  iamRoleStatements:
+    - Effect: 'Allow'
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:PutItem
+        - dynamodb:DeleteItem
+        - dynamodb:GetItem
+      Resource: arn:aws:dynamodb:us-east-1:215975075539:table/PACIENTESopa
+
+#informa o ambiente e a região
 stage: dev
 region: us-east-1
 
+
+#informa as functions onde e especificado o nome da function e o header de execução da function
+#os events são os gatilhos que vão ativar essas functions, nos exemplos abaixo, os gatilhos são API Rest utilizando o API Gateway da AWS
 functions:
   hello:
     handler: handler.hello
@@ -36,6 +53,34 @@ functions:
               paths:
                 pacienteId: false
 
+  cadastrarPaciente:
+    handler: handler.cadastrarPaciente
+
+    events:
+      - http:  
+          path: pacientes
+          method: post
+          
+
+  
 
 
+#é informado os recursos que serão utilizados pelas functions
+#neste exemplo é informado que será utilizado uma recurso com nome de PacienteTable que tem o tipo AWS::DynamoDB::Table
+#que é um banco DynamoDB da AWS, e é informado os recursos para a criação da tabela no banco
+resources:
+  Resources:
+    PacientesTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: PACIENTES
+        AttributeDefinitions:
+          - AttributeName: paciente_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: paciente_id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
        
