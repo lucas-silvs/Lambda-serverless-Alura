@@ -18,7 +18,9 @@
   },
   "homepage": "https://github.com/lucas-silvs/Lambda-serverless-Alura#readme",
   "dependencies": {
-    "moment": "^2.29.2"
+    "aws-sdk": "^2.1114.0",
+    "moment": "^2.29.2",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "serverless-offline": "^8.7.0"
