@@ -4,11 +4,39 @@ frameworkVersion: '3'
 
 plugins:
   - serverless-offline
+  - serverless-dynamodb-local
+
+
+custom:
+  dynamodb:
+    stages:
+      - dev
+    start:
+      port: 8000
+      inMemory: true
+      heapInitial: 200m
+      heapMax: 1g
+      migrate: true
+      seed: true
+      convertEmptyValues: true  
+    seed:
+      domain:
+        sources:
+          - table: PACIENTES
+            sources: [./offline/pacientes-seed.json]
 
 #informar o provider (aws , google cloud, azure, etc.)
 provider:
   name: aws
   runtime: nodejs12.x
+
+  #informa o ambiente e a região
+  stage: dev
+  region: us-east-1
+
+  #configuração para carregar diferentes dados dependendo do ambiente
+  environment:
+    PACIENTES_TABLE: 'PACIENTES-${opt:stage, self:provider.stage}'
 
 #aqui é informado as permissões que os serão utilizadas pelas functions, onde é informada o tipo do produto é a operação
 #o Resoruce é o arn do recurso que será utilizado as permissões especificads
@@ -20,11 +48,8 @@ provider:
         - dynamodb:PutItem
         - dynamodb:DeleteItem
         - dynamodb:GetItem
-      Resource: arn:aws:dynamodb:us-east-1:215975075539:table/PACIENTESopa
-
-#informa o ambiente e a região
-stage: dev
-region: us-east-1
+        - dynamo:UpdateItem
+      Resource: 'arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.PACIENTES_TABLE}'
 
 
 #informa as functions onde e especificado o nome da function e o header de execução da function
@@ -61,6 +86,28 @@ functions:
           path: pacientes
           method: post
           
+  atualizarPaciente:
+    handler: handler.atualizarPaciente
+    
+    events:
+      - http:  
+          path: pacientes/{pacienteId}
+          method: put
+          request:
+            parameters:
+              paths:
+                pacienteId: false
+
+  deletarPaciente:
+    handler: handler.deletarPaciente
+    
+    events:
+      - http:  
+          path: pacientes/{pacienteId}
+          method: Delete
+        
+  
+
 
   
 
@@ -73,7 +120,7 @@ resources:
     PacientesTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: PACIENTES
+        TableName: ${self:provider.environment.PACIENTES_TABLE}
         AttributeDefinitions:
           - AttributeName: paciente_id
             AttributeType: S
