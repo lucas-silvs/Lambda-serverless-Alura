@@ -25,12 +25,21 @@ const pacientes = [
 ];
 
 const AWS = require("aws-sdk");
-const {v4:uuidv4} = require("uuid")
+const { v4: uuidv4 } = require("uuid");
 const moment = require("moment");
 
-const dynamoDb = new AWS.DynamoDB.DocumentClient();
+const dynamodbOfflineOptions = {
+  region: "localhost",
+  endpoint: "http://localhost:8000"
+}
+
+const isOffline = () => process.env.ISOFFLINE;
+
+const dynamoDb = isOffline()
+? new AWS.DynamoDB.DocumentClient(dynamodbOfflineOptions)
+: new AWS.DynamoDB.DocumentClient();
 const params = {
-  TableName: "PACIENTES",
+  TableName: process.env.PACIENTES_TABLE,
 };
 
 function buscarnaListaPaciente(id) {
@@ -39,12 +48,37 @@ function buscarnaListaPaciente(id) {
 
 module.exports.listarPacientes = async (event) => {
   try {
-    let dados = await dynamoDb.scan(params).promise();
-    console.log(event);
+    const queryString = {
+      limit: 5,
+      ...event.queryStringParameters
+    }
+
+    const {limit, next} = queryString
+
+    let localParams = {
+      ...params,
+      Limit : limit
+    }
+    if(next){
+      localParams.ExclusiveStartKey = {
+        paciente_id: next
+      }
+    }
+
+    let data = dynamoDb.scan(localParams).promise();
+
+    let nextToken = data.LastEvaluatedKey != undefined ? await data.LastEvaluatedKey.paciente_id : null;
+
+    const result = {
+      Items: data.Items,
+      next_token: nextToken
+    };
+
     return {
       statusCode: 200,
-      body: JSON.stringify(dados.Items),
-    };
+      body: JSON.stringify(result)
+    }
+
   } catch (err) {
     console.log(event);
     return {
@@ -105,7 +139,7 @@ module.exports.cadastrarPaciente = async (event) => {
     const payload = JSON.parse(event.body);
     const dataCriacao = new Date().getTime();
 
-    const {  nome, data_nascimento, email, telefone } = payload;
+    const { nome, data_nascimento, email, telefone } = payload;
 
     const paciente = {
       paciente_id: uuidv4(),
@@ -139,3 +173,100 @@ module.exports.cadastrarPaciente = async (event) => {
     };
   }
 };
+
+module.exports.atualizarPaciente = async (event) => {
+  const { pacienteId } = event.pathParameters;
+
+  try {
+    const timestamp = new Date().getTime();
+    let dados = JSON.parse(event.body);
+
+    const { nome, data_nascimento, email, telefone } = dados;
+
+    await dynamoDb
+      .update({
+        ...params,
+        Key: {
+          paciente_id: pacienteId,
+        },
+        UpdateExpression:
+          "SET nome= :nome, data_nascimento = :dt, email = :email, telefone = :telefone," +
+          " atualizado_em = :atualizado_em",
+        ConditionExpression: "attribute_exists(paciente_id)",
+        ExpressionAttributeValues: {
+          ":nome": nome,
+          ":dt": data_nascimento,
+          ":email": email,
+          ":atualizado_em": timestamp,
+          ":telefone" : telefone
+        },
+      })
+      .promise()
+
+    return {
+      statusCode: 204,
+    };
+  } catch (err) {
+    console.log("Error", err);
+
+    let error = err.name ? err.name : "Exception";
+    let message = err.message ? err.message : "Unknown error";
+    let statusCode = err.statusCode ? err.statusCode : 500;
+
+    if(error = 'ConditionalCheckFailedException') {
+      error = 'Paciente não existe na base de dados';
+      message = `Recurso com o ID ${pacienteId} não existe e não pode ser atualizado`;
+      statusCode = 404;
+    }
+
+    return {
+      body: JSON.stringify({
+        statusCode,
+        message
+      }),
+    };
+
+  }
+  
+};
+
+
+module.exports.deletarPaciente = async (event) => {
+
+  const {pacienteId} = event.pathParameters
+
+  try{
+    await dynamoDb
+    .delete({
+      ...params,
+      Key: { paciente_id: pacienteId},
+      ConditionExpression: 'attribute_exists(paciente_id)'
+    })
+    .promise()
+
+    return{
+      statusCode: 204
+    }
+  } catch(err) {
+    console.log("Error", err);
+
+    let error = err.name ? err.name : "Exception";
+    let message = err.message ? err.message : "Unknown error";
+    let statusCode = err.statusCode ? err.statusCode : 500; 
+
+    if(error = 'ConditionalCheckFailedException') {
+      error = 'Paciente não existe na base de dados';
+      message = `Recurso com o ID ${pacienteId} não existe e não pode ser deletado`;
+      statusCode = 404;
+    }
+
+    return {
+      body: JSON.stringify({
+        statusCode,
+        message
+      }),
+    };
+
+  }
+
+}
